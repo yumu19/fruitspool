@@ -2,11 +2,33 @@ const isFlipped = true;
 let kp = [];
 const ss = 10; // 腕のオブジェクトの太さ
 
-const osc1 = new p5.Oscillator('square')
-const osc2 = new p5.Oscillator('square')
-let env = new p5.Envelope();
-env.setADSR(0.001, 0.5, 0.1, 0.5);
-env.setRange(0.8, 0.5);
+const canvasW = 1280;
+const canvasH = 720;
+const centerX = canvasW/2;
+
+const stageW = 400;
+const stageH = 500;
+
+const floorOffset = 50;
+const wallThikness = 10;
+const wallColor = "skyblue";
+
+const dropOffsetX = 50;
+const dropOffsetY = 100;
+
+const nfX = 1000;
+const nfY = 150;
+const nfR = 150;
+
+// const osc1 = new p5.Oscillator('square')
+// const osc2 = new p5.Oscillator('square')
+// let env = new p5.Envelope();
+// env.setADSR(0.001, 0.5, 0.1, 0.5);
+// env.setRange(0.8, 0.5);
+
+let bgm;
+let fall;
+let pong;
 
 const videoElement = document.getElementsByClassName("input_video")[0];
 videoElement.style.display = "none";
@@ -72,26 +94,29 @@ const radiusList = [34,45,63,74,94,118,136,167,187,229,272,1];
 
 
 function preload(){
-   for (let i = 0; i < 11; i++){
-     fruitsImg[i] = loadImage("img/"+i+".png");
-   }
+  for (let i = 0; i < 11; i++){
+    fruitsImg[i] = loadImage("img/"+i+".png");
+  }
+  bgm = loadSound('assets/Thanks.mp3');
+  fall = loadSound('assets/fall.mp3');
+  pong = loadSound('assets/pong.mp3');
 }
 
 function setup() {
-  //createCanvas(960, 480); 
-  createCanvas(1600, 800); 
+  createCanvas(canvasW, canvasH); 
+  //createCanvas(1600, 800); 
   videoImage = createGraphics(640, 360);
   //createCanvas(800, 800);
   textSize(32);
     
-  l_uarm = new Sprite();
+  l_uarm = new Sprite(1,1,1,1);
   l_uarm.collider = 'static';
-  l_larm = new Sprite();
+  l_larm = new Sprite(1,1,1,1);
   l_larm.collider = 'static';   
   
-  r_uarm = new Sprite();
+  r_uarm = new Sprite(1,1,1,1);
   r_uarm.collider = 'static';
-  r_larm = new Sprite();
+  r_larm = new Sprite(1,1,1,1);
   r_larm.collider = 'static'; 
   
   l_uarm.color = "limegreen";
@@ -104,33 +129,40 @@ function setup() {
   
   fruits = new Group();
   
-  stageW = 400;
-  stageH = 600;
 
-  floor = new Sprite(400,700,stageW,5);
+  //ステージ枠の作成
+  floor = new Sprite(canvasW/2,canvasH-floorOffset,stageW+wallThikness,wallThikness);
   floor.collider = 'static';
-  lWall = new Sprite(200,400,5,stageH);
+  floor.color = wallColor;
+  lWall = new Sprite((canvasW-stageW)/2,canvasH-floorOffset-stageH/2,wallThikness,stageH+wallThikness);
   lWall.collider = 'static';
-  rWall = new Sprite(600,400,5,stageH);
+  lWall.color = wallColor;
+  rWall = new Sprite((canvasW+stageW)/2,canvasH-floorOffset-stageH/2,wallThikness,stageH+wallThikness);
   rWall.collider = 'static';
-  
+  rWall.color = wallColor; 
+   
+  nextCircle = new Sprite(nfX,nfY);
+  nextCircle.color = 'white';
+  nextCircle.diameter = nfR;
+  nextCircle.collider = 'none';
 
-//  radiusList = [32,40,48,56,64,72,80,88,96,104,0];
-    
-
-  nextFruit = new Sprite(700, 150);
+  nextFruit = new Sprite(nfX, nfY);
   let ns = parseInt(random(5));
   nextFruit.textSize = ns;
   nextFruit.color = colorList[ns];
   nextFruit.diameter = radiusList[ns];
+  nextFruit.addImage(fruitsImg[ns]);
   nextFruit.collider = 'static';
 
-  dropFruit = new Sprite(400, 100);
+  dropFruit = new Sprite(centerX, dropOffsetY);
   let ds = parseInt(random(5));
   dropFruit.textSize = ds;
   dropFruit.color = colorList[ds];
   dropFruit.diameter = radiusList[ds];
-  dropFruit.collider = 'static'; 
+  dropFruit.addImage(fruitsImg[ds]);
+  dropFruit.collider = 'static';
+  
+  bgm.loop();
 }
 
 function draw() {
@@ -184,7 +216,6 @@ function draw() {
     l_larm.rotation = angle;
   }
 
-  
   if (kp[12] && kp[14]) { //右上腕
     r_shoulder = kp[12];
     r_elbow = kp[14];
@@ -224,9 +255,10 @@ function draw() {
   
   // ここからスイカゲーム
   
-  text(score, 50, 50);
+  text(score, (canvasW-stageW)/2-100, 50);
+  text("#くだものプール",centerX-120,canvasH-10);
   
-  dropFruit.x = 400;
+  //dropFruit.x = centerX;
   
   fruits.collide(fruits, (a, b) => {
       let as = a.textSize;
@@ -246,13 +278,14 @@ function draw() {
         fruits.add(f);
         
         score += scores[as];
+        pong.play();
         }
       }
     );
-  
+
   counter++;
   if (counter > 100) {
-    let f = new Sprite(random(250,550), 200);
+    let f = new Sprite(dropFruit.x, canvasH - floorOffset - stageH);
     let s = dropFruit.textSize;
     //console.log(s);
     f.textSize = s;
@@ -260,16 +293,25 @@ function draw() {
     f.addImage(fruitsImg[s]);
     f.diameter = radiusList[s];
     fruits.add(f);
+    fall.play();
     
     let ds = nextFruit.textSize;
+    dropFruit.x = parseInt(random((canvasW-stageW)/2+dropOffsetX,(canvasW+stageW)/2-dropOffsetX));
+    console.log((canvasW-stageW)/2+dropOffsetX);
+    console.log((canvasW+stageW)/2-dropOffsetX);
+    console.log(random((canvasW-stageW)/2+dropOffsetX,(canvasW+stageW)/2-dropOffsetX));
+    
+    dropFruit.y = dropOffsetY;
     dropFruit.textSize = ds;
     dropFruit.color = colorList[ds];
     dropFruit.diameter = radiusList[ds];
-
+    dropFruit.addImage(fruitsImg[ds]);   
+    
     let ns = parseInt(random(5));
     nextFruit.textSize = ns;
     nextFruit.color = colorList[ns];
     nextFruit.diameter = radiusList[ns];
+    nextFruit.addImage(fruitsImg[ns]);
     
     counter = 0;
   }
