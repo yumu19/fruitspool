@@ -28,7 +28,7 @@ const nfX = 1000;
 const nfY = 150;
 const nfR = 150;
 
-let dropSpeed = 20;
+let dropSpeed = 5;
 
 let bgm;
 let fall;
