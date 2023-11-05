@@ -36,6 +36,7 @@ let pong;
 
 let isGameOver = false;
 let enableGameOver = true;
+let isMute = false;
 
 const videoElement = document.getElementsByClassName("input_video")[0];
 videoElement.style.display = "none";
@@ -261,9 +262,7 @@ function draw() {
   catch (error) {
     console.error(error);
   }
-  // ここまで mediapipe
-  
-  // ここからスイカゲーム
+
   // 透過背景
   noStroke();
 //  fill(153,153,102,196);
@@ -295,22 +294,23 @@ function draw() {
   }
   text(score, lWallX-214-ofX,114);
   
-  
   noStroke();
   fill(0);
   textSize(16);
-
-  text("Speed： " + dropSpeed, 10,canvasH-85);
-  text ("Uキー：スピードアップ　", 10,canvasH-65);
-  text ("Dキー：スピードダウン", 10,canvasH-45);
-  text ("Rキー：リトライ", 10,canvasH-25);
-  let t = "ゲームオーバー： あり （Gキーで変更）";
-  if (!enableGameOver){
-    t = "ゲームオーバー：なし （Gキーで変更）";
+  text("Speed： " + dropSpeed, 10,canvasH-105);
+  text ("Uキー：スピードアップ　", 10,canvasH-85);
+  text ("Dキー：スピードダウン", 10,canvasH-65);
+  text ("Rキー：リトライ", 10,canvasH-45);
+  let tm = "BGMあり（Mキーでミュート)"
+  if (isMute){
+    tm = "BGMなし（Mキーで再生）";
   }
-  text (t, 10, canvasH-5);
-  
-  
+  text(tm, 10, canvasH-25);
+  let tg = "ゲームオーバーあり（Gキーで変更）";
+  if (!enableGameOver){
+    tg = "ゲームオーバーなし（Gキーで変更）";
+  }
+  text(tg, 10, canvasH-5);
   
   fruits.collide(fruits, (a, b) => { //合体したときの処理
     if (!isGameOver){
@@ -376,12 +376,10 @@ function draw() {
       text("Rキーでリトライ",centerX-186,wallY+60);
     }
   }
- 
   
   if (kb.presses('r')) {
 	retry();
   }
-  
   if (kb.presses('g')) {
 	enableGameOver = !enableGameOver;
   }
@@ -391,8 +389,14 @@ function draw() {
   if (kb.presses('d')) {
 	dropSpeed = max(1,dropSpeed-1);
   }
-  
-  
-  
-  //console.log(fruits);
+  if (kb.presses('m')) {
+    if(isMute){
+      isMute = false;
+      bgm.amp(1);
+    } else {
+      isMute = true;
+      bgm.amp(0);
+    }
+	
+  }
 }
