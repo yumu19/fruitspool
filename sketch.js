@@ -11,7 +11,15 @@ const stageH = 500;
 
 const floorOffset = 50;
 const wallThikness = 10;
+const lWallX = (canvasW-stageW)/2;
+const rWallX = (canvasW+stageW)/2;
+const wallY = canvasH-floorOffset-stageH/2;
+const stageTop = canvasH - stageH - floorOffset;
+
 const wallColor = "skyblue";
+const armColor = "limegreen";
+const wallStroke = "black";
+const armStroke = "black";
 
 const dropOffsetX = 50;
 const dropOffsetY = 100;
@@ -20,15 +28,14 @@ const nfX = 1000;
 const nfY = 150;
 const nfR = 150;
 
-// const osc1 = new p5.Oscillator('square')
-// const osc2 = new p5.Oscillator('square')
-// let env = new p5.Envelope();
-// env.setADSR(0.001, 0.5, 0.1, 0.5);
-// env.setRange(0.8, 0.5);
+let dropSpeed = 20;
 
 let bgm;
 let fall;
 let pong;
+
+let isGameOver = false;
+let enableGameOver = true;
 
 const videoElement = document.getElementsByClassName("input_video")[0];
 videoElement.style.display = "none";
@@ -72,15 +79,12 @@ let l_larm;
 let l_shoulder;
 let l_elbow;
 let l_wrist;
-
 let r_uarm;
 let r_larm;
 let r_shoulder;
 let r_elbow;
 let r_wrist;
 
-
-// スイカゲーム
 let fruits;
 let dropFruit;
 let nextFruit;
@@ -102,45 +106,56 @@ function preload(){
   pong = loadSound('assets/pong.mp3');
 }
 
+function retry(){
+  fruits.remove();
+  fruits = new Group();
+  score = 0;
+  isGameOver = false;
+}
+
 function setup() {
-  createCanvas(canvasW, canvasH); 
-  //createCanvas(1600, 800); 
+  createCanvas(canvasW, canvasH);  
   videoImage = createGraphics(640, 360);
-  //createCanvas(800, 800);
   textSize(32);
     
   l_uarm = new Sprite(1,1,1,1);
   l_uarm.collider = 'static';
   l_larm = new Sprite(1,1,1,1);
   l_larm.collider = 'static';   
-  
   r_uarm = new Sprite(1,1,1,1);
   r_uarm.collider = 'static';
   r_larm = new Sprite(1,1,1,1);
   r_larm.collider = 'static'; 
   
-  l_uarm.color = "limegreen";
-  l_larm.color = "limegreen"
-  r_uarm.color = "limegreen";
-  r_larm.color = "limegreen";
+  l_uarm.color = armColor;
+  l_larm.color = armColor
+  r_uarm.color = armColor;
+  r_larm.color = armColor;
   
-   
+  l_uarm.stroke = armStroke;
+  l_larm.stroke = armStroke
+  r_uarm.stroke = armStroke;
+  r_larm.stroke = armStroke;
+  
   world.gravity.y = 10;
   
   fruits = new Group();
   
-
   //ステージ枠の作成
   floor = new Sprite(canvasW/2,canvasH-floorOffset,stageW+wallThikness,wallThikness);
   floor.collider = 'static';
   floor.color = wallColor;
-  lWall = new Sprite((canvasW-stageW)/2,canvasH-floorOffset-stageH/2,wallThikness,stageH+wallThikness);
+  floor.stroke = wallStroke;
+
+  lWall = new Sprite(lWallX,wallY,wallThikness,stageH+wallThikness);
   lWall.collider = 'static';
   lWall.color = wallColor;
-  rWall = new Sprite((canvasW+stageW)/2,canvasH-floorOffset-stageH/2,wallThikness,stageH+wallThikness);
+  lWall.stroke = wallStroke;
+  rWall = new Sprite(rWallX,wallY,wallThikness,stageH+wallThikness);
   rWall.collider = 'static';
   rWall.color = wallColor; 
-   
+  rWall.stroke = wallStroke; 
+  
   nextCircle = new Sprite(nfX,nfY);
   nextCircle.color = 'white';
   nextCircle.diameter = nfR;
@@ -153,14 +168,6 @@ function setup() {
   nextFruit.diameter = radiusList[ns];
   nextFruit.addImage(fruitsImg[ns]);
   nextFruit.collider = 'static';
-
-  dropFruit = new Sprite(centerX, dropOffsetY);
-  let ds = parseInt(random(5));
-  dropFruit.textSize = ds;
-  dropFruit.color = colorList[ds];
-  dropFruit.diameter = radiusList[ds];
-  dropFruit.addImage(fruitsImg[ds]);
-  dropFruit.collider = 'static';
   
   bgm.loop();
 }
@@ -191,76 +198,122 @@ function draw() {
   
   let dw = displayWidth;
   let dh = displayHeight;
-  
-  if (kp[11] && kp[13]) { //左上腕
-    l_shoulder = kp[11];
-    l_elbow = kp[13];
-    l_uarm.x = (2 - l_shoulder.x - l_elbow.x)/2 * dw;
-    l_uarm.y = (l_shoulder.y + l_elbow.y)/2 * dh;
-    let w = Math.sqrt(Math.pow((l_shoulder.x-l_elbow.x)*dw,2)+Math.pow((l_shoulder.y-l_elbow.y)*dh,2));
-    l_uarm.width = w;   
-    l_uarm.height = ss;
-    let angle =  Math.atan2((l_shoulder.y-l_elbow.y)*dh,(l_elbow.x-l_shoulder.x)* dw)*180/3.14159;
-    l_uarm.rotation = angle;
-  }
-
-  if (kp[13] && kp[15]) { //左下腕
-    l_elbow = kp[13];
-    l_wrist = kp[15];
-    l_larm.x = (2 - l_elbow.x - l_wrist.x)/2 * dw;
-    l_larm.y = (l_elbow.y + l_wrist.y)/2 * dh;
-    let w = Math.sqrt(Math.pow((l_elbow.x-l_wrist.x)*dw,2)+Math.pow((l_elbow.y-l_wrist.y)*dh,2));
-    l_larm.width = w;   
-    l_larm.height = ss;
-    let angle = -Math.atan2((l_elbow.y-l_wrist.y)*dh,(l_elbow.x-l_wrist.x)*dw)*180/3.14159;
-    l_larm.rotation = angle;
-  }
-
-  if (kp[12] && kp[14]) { //右上腕
-    r_shoulder = kp[12];
-    r_elbow = kp[14];
-    r_uarm.x = (2 - r_shoulder.x - r_elbow.x)/2 * dw;
-    r_uarm.y = (r_shoulder.y + r_elbow.y)/2 * dh;
-    let w = Math.sqrt(Math.pow((r_shoulder.x-r_elbow.x)*dw,2)+Math.pow((r_shoulder.y-r_elbow.y)*dh,2));
-    r_uarm.width = w;   
-    r_uarm.height = ss;
-    let angle =  Math.atan2((r_shoulder.y-r_elbow.y)*dh,(r_elbow.x-r_shoulder.x)* dw)*180/3.14159;
-    r_uarm.rotation = angle;
-  }
-
-  if (kp[14] && kp[16]) { //右下腕
-    r_elbow = kp[14];
-    r_wrist = kp[16];
-    r_larm.x = (2 - r_elbow.x - r_wrist.x)/2 * dw;
-    r_larm.y = (r_elbow.y + r_wrist.y)/2 * dh;
-    let w = Math.sqrt(Math.pow((r_elbow.x-r_wrist.x)*dw,2)+Math.pow((r_elbow.y-r_wrist.y)*dh,2));
-    r_larm.width = w;   
-    r_larm.height = ss;
-    let angle = -Math.atan2((r_elbow.y-r_wrist.y)*dh,(r_elbow.x-r_wrist.x)*dw)*180/3.14159;
-    r_larm.rotation = angle;
-  }
-  
-  /* 関節点の表示
-  if (kp.length > 0) {
-    for (let i=11; i<23; i++){
-       indexTip = kp[i];
-       let xx = (1-indexTip.x) * displayWidth;
-       let yy = indexTip.y * displayHeight;
-       ellipse(xx, yy, 20);
+  try{
+    if (kp[11] && kp[13]) { //左上腕
+      l_shoulder = kp[11];
+      l_elbow = kp[13];
+      l_uarm.x = (2 - l_shoulder.x - l_elbow.x)/2 * dw;
+      l_uarm.y = (l_shoulder.y + l_elbow.y)/2 * dh;
+      let w = Math.sqrt(Math.pow((l_shoulder.x-l_elbow.x)*dw,2)+Math.pow((l_shoulder.y-l_elbow.y)*dh,2));
+      l_uarm.width = w;   
+      l_uarm.height = ss;
+      let angle =  Math.atan2((l_shoulder.y-l_elbow.y)*dh,(l_elbow.x-l_shoulder.x)* dw)*180/3.14159;
+      l_uarm.rotation = angle;
     }
-  }
-  */
 
+    if (kp[13] && kp[15]) { //左下腕
+      l_elbow = kp[13];
+      l_wrist = kp[15];
+      l_larm.x = (2 - l_elbow.x - l_wrist.x)/2 * dw;
+      l_larm.y = (l_elbow.y + l_wrist.y)/2 * dh;
+      let w = Math.sqrt(Math.pow((l_elbow.x-l_wrist.x)*dw,2)+Math.pow((l_elbow.y-l_wrist.y)*dh,2));
+      l_larm.width = w;   
+      l_larm.height = ss;
+      let angle = -Math.atan2((l_elbow.y-l_wrist.y)*dh,(l_elbow.x-l_wrist.x)*dw)*180/3.14159;
+      l_larm.rotation = angle;
+    }
+
+    if (kp[12] && kp[14]) { //右上腕
+      r_shoulder = kp[12];
+      r_elbow = kp[14];
+      r_uarm.x = (2 - r_shoulder.x - r_elbow.x)/2 * dw;
+      r_uarm.y = (r_shoulder.y + r_elbow.y)/2 * dh;
+      let w = Math.sqrt(Math.pow((r_shoulder.x-r_elbow.x)*dw,2)+Math.pow((r_shoulder.y-r_elbow.y)*dh,2));
+      r_uarm.width = w;   
+      r_uarm.height = ss;
+      let angle =  Math.atan2((r_shoulder.y-r_elbow.y)*dh,(r_elbow.x-r_shoulder.x)* dw)*180/3.14159;
+      r_uarm.rotation = angle;
+    }
+
+    if (kp[14] && kp[16]) { //右下腕
+      r_elbow = kp[14];
+      r_wrist = kp[16];
+      r_larm.x = (2 - r_elbow.x - r_wrist.x)/2 * dw;
+      r_larm.y = (r_elbow.y + r_wrist.y)/2 * dh;
+      let w = Math.sqrt(Math.pow((r_elbow.x-r_wrist.x)*dw,2)+Math.pow((r_elbow.y-r_wrist.y)*dh,2));
+      r_larm.width = w;   
+      r_larm.height = ss;
+      let angle = -Math.atan2((r_elbow.y-r_wrist.y)*dh,(r_elbow.x-r_wrist.x)*dw)*180/3.14159;
+      r_larm.rotation = angle;
+    }
+
+    /* 関節点の表示
+    if (kp.length > 0) {
+      for (let i=11; i<23; i++){
+         indexTip = kp[i];
+         let xx = (1-indexTip.x) * displayWidth;
+         let yy = indexTip.y * displayHeight;
+         ellipse(xx, yy, 20);
+      }
+    }
+    */
+  }
+  catch (error) {
+    console.error(error);
+  }
   // ここまで mediapipe
   
   // ここからスイカゲーム
+  // 透過背景
+  noStroke();
+//  fill(153,153,102,196);
+  fill(255,255,0,164);
+//  fill(0,0,255,164);
+  rect(0,0,lWallX,canvasH);
+  rect(rWallX,0,canvasW-rWallX,canvasH);
   
-  text(score, (canvasW-stageW)/2-100, 50);
-  text("#くだものプール",centerX-120,canvasH-10);
+  rect(lWallX,0,stageW,stageTop);
+  rect(lWallX,canvasH-floorOffset,stageW,floorOffset);
   
-  //dropFruit.x = centerX;
+  stroke(0);
+  fill(255);
+  circle(lWallX-200,100,150);
   
-  fruits.collide(fruits, (a, b) => {
+  // 文字関連
+  stroke(0,0,255); 
+  fill(238,120,0);
+  textSize(38);
+  text("#くだものプール",centerX-150,canvasH-10);
+  let ofX = 0;
+  if (score > 999){
+    ofX = 36;
+  } else if (score > 99){
+    ofX = 24;
+  }  
+  else if (score > 9){
+    ofX = 12;
+  }
+  text(score, lWallX-214-ofX,114);
+  
+  
+  noStroke();
+  fill(0);
+  textSize(16);
+
+  text("Speed： " + dropSpeed, 10,canvasH-85);
+  text ("Uキー：スピードアップ　", 10,canvasH-65);
+  text ("Dキー：スピードダウン", 10,canvasH-45);
+  text ("Rキー：リトライ", 10,canvasH-25);
+  let t = "ゲームオーバー： あり （Gキーで変更）";
+  if (!enableGameOver){
+    t = "ゲームオーバー：なし （Gキーで変更）";
+  }
+  text (t, 10, canvasH-5);
+  
+  
+  
+  fruits.collide(fruits, (a, b) => { //合体したときの処理
+    if (!isGameOver){
       let as = a.textSize;
       if (as == b.textSize){
         let ax = a.x;
@@ -281,38 +334,65 @@ function draw() {
         pong.play();
         }
       }
-    );
+    }
+  );
 
   counter++;
-  if (counter > 100) {
-    let f = new Sprite(dropFruit.x, canvasH - floorOffset - stageH);
-    let s = dropFruit.textSize;
-    //console.log(s);
-    f.textSize = s;
-    f.color = colorList[s];
-    f.addImage(fruitsImg[s]);
-    f.diameter = radiusList[s];
-    fruits.add(f);
-    fall.play();
-    
-    let ds = nextFruit.textSize;
-    dropFruit.x = parseInt(random((canvasW-stageW)/2+dropOffsetX,(canvasW+stageW)/2-dropOffsetX));
-    console.log((canvasW-stageW)/2+dropOffsetX);
-    console.log((canvasW+stageW)/2-dropOffsetX);
-    console.log(random((canvasW-stageW)/2+dropOffsetX,(canvasW+stageW)/2-dropOffsetX));
-    
-    dropFruit.y = dropOffsetY;
-    dropFruit.textSize = ds;
-    dropFruit.color = colorList[ds];
-    dropFruit.diameter = radiusList[ds];
-    dropFruit.addImage(fruitsImg[ds]);   
-    
-    let ns = parseInt(random(5));
-    nextFruit.textSize = ns;
-    nextFruit.color = colorList[ns];
-    nextFruit.diameter = radiusList[ns];
-    nextFruit.addImage(fruitsImg[ns]);
-    
-    counter = 0;
+  if (counter > 500/dropSpeed) {
+    if (!isGameOver){
+      let fx =　random((canvasW-stageW)/2+dropOffsetX,(canvasW+stageW)/2-dropOffsetX);
+      let f = new Sprite(fx, canvasH - floorOffset - stageH);
+      let s = nextFruit.textSize;
+      //console.log(s);
+      f.textSize = s;
+      f.color = colorList[s];
+      f.addImage(fruitsImg[s]);
+      f.diameter = radiusList[s];
+      fruits.add(f);
+      fall.play();
+
+      let ns = parseInt(random(5));
+      nextFruit.textSize = ns;
+      nextFruit.color = colorList[ns];
+      nextFruit.diameter = radiusList[ns];
+      nextFruit.addImage(fruitsImg[ns]);
+
+      counter = 0;
+    }
   }
+  //ゲームオーバー判定
+  if(enableGameOver){
+    for (let i=0; i < fruits.length; i++){
+      if (fruits[i].y < stageTop - 100){
+        isGameOver = true;
+      }
+    }
+    if (isGameOver){
+      textSize(60);
+      stroke(0);
+      fill(255,255,0);
+      text("GAME OVER",centerX-190,wallY);
+      textSize(48)
+      text("Rキーでリトライ",centerX-186,wallY+60);
+    }
+  }
+ 
+  
+  if (kb.presses('r')) {
+	retry();
+  }
+  
+  if (kb.presses('g')) {
+	enableGameOver = !enableGameOver;
+  }
+  if (kb.presses('u')) {
+	dropSpeed = min(20,dropSpeed+1);
+  }
+  if (kb.presses('d')) {
+	dropSpeed = max(1,dropSpeed-1);
+  }
+  
+  
+  
+  //console.log(fruits);
 }
